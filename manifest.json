@@ -1,0 +1,30 @@
+{
+    "name": "电子书阅读器",
+    "short_name": "电子书",
+    "description": "从百度网盘导入PDF电子书，随时随地阅读，自动记忆进度",
+    "start_url": "./index.html",
+    "scope": "./",
+    "display": "standalone",
+    "orientation": "portrait",
+    "theme_color": "#1a1a2e",
+    "background_color": "#0f0f1a",
+    "lang": "zh-CN",
+    "dir": "ltr",
+    "icons": [
+        {
+            "src": "icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": ["books", "education", "utilities"],
+    "screenshots": [],
+    "related_applications": []
+}
