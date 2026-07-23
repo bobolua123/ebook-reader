@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="电子书阅读器">
+    <meta name="description" content="从百度网盘导入PDF电子书，随时随地阅读">
+
+    <title>📚 电子书阅读器</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- PDF.js from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+    <!-- ==================== 应用容器 ==================== -->
+    <div id="app">
+
+        <!-- ========== 书架视图 ========== -->
+        <div id="library-view" class="view active">
+            <!-- 顶部导航栏 -->
+            <header class="header">
+                <h1 class="header-title">📚 我的书架</h1>
+                <button class="btn-icon" id="btn-import" title="导入电子书" aria-label="导入电子书">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                </button>
+            </header>
+
+            <!-- 书架内容区域 -->
+            <main class="library-content" id="library-content">
+                <!-- 空状态 -->
+                <div class="empty-state" id="empty-state">
+                    <div class="empty-icon">📖</div>
+                    <h2>书架空空如也</h2>
+                    <p>从百度网盘下载 PDF 电子书后<br>点击右上角 + 导入到书架</p>
+                    <button class="btn-primary" id="btn-import-empty">导入第一本书</button>
+                </div>
+
+                <!-- 书籍网格 -->
+                <div class="book-grid" id="book-grid" style="display:none;">
+                    <!-- 动态填充 -->
+                </div>
+            </main>
+        </div>
+
+        <!-- ========== 阅读器视图 ========== -->
+        <div id="reader-view" class="view">
+            <!-- 阅读器顶部栏 -->
+            <header class="reader-topbar" id="reader-topbar">
+                <button class="btn-icon" id="btn-back" title="返回书架" aria-label="返回书架">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <span class="reader-book-title" id="reader-book-title">书名</span>
+                <span class="reader-page-info" id="reader-page-info">1 / 100</span>
+            </header>
+
+            <!-- PDF 渲染区域 -->
+            <div class="reader-canvas-container" id="reader-canvas-container">
+                <canvas id="pdf-canvas"></canvas>
+                <!-- 翻页提示层 -->
+                <div class="touch-zone touch-zone-left" id="touch-zone-left"></div>
+                <div class="touch-zone touch-zone-right" id="touch-zone-right"></div>
+            </div>
+
+            <!-- 阅读器底部栏 -->
+            <footer class="reader-bottombar" id="reader-bottombar">
+                <button class="btn-page" id="btn-prev" aria-label="上一页">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6"/>
+                    </svg>
+                    上一页
+                </button>
+                <div class="page-slider-container">
+                    <input type="range" class="page-slider" id="page-slider" min="1" value="1" step="1">
+                </div>
+                <button class="btn-page" id="btn-next" aria-label="下一页">
+                    下一页
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 18l6-6-6-6"/>
+                    </svg>
+                </button>
+            </footer>
+
+            <!-- 加载指示器 -->
+            <div class="loading-overlay" id="loading-overlay" style="display:none;">
+                <div class="spinner"></div>
+                <p>加载中...</p>
+            </div>
+        </div>
+
+        <!-- ========== 导入弹窗 ========== -->
+        <div class="modal-overlay" id="import-modal" style="display:none;">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2>导入电子书</h2>
+                    <button class="btn-close" id="btn-close-modal" aria-label="关闭">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 6L6 18M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- 文件上传区域 -->
+                    <div class="upload-area" id="upload-area">
+                        <div class="upload-icon">📂</div>
+                        <p class="upload-text">点击选择 PDF 文件</p>
+                        <p class="upload-hint">支持 PDF 格式，最大 100MB</p>
+                        <input type="file" id="file-input" accept=".pdf,application/pdf" style="display:none;">
+                    </div>
+
+                    <div class="modal-divider">
+                        <span>导入说明</span>
+                    </div>
+
+                    <!-- 百度网盘导入说明 -->
+                    <div class="import-instructions">
+                        <h3>📥 从百度网盘导入步骤：</h3>
+                        <ol>
+                            <li>打开手机上的 <strong>百度网盘 App</strong></li>
+                            <li>找到你的 PDF 电子书文件</li>
+                            <li>点击文件旁的 <strong>···</strong> 或长按文件</li>
+                            <li>选择 <strong>下载</strong> 将文件保存到手机</li>
+                            <li>回到本应用，点击上方区域选择文件</li>
+                            <li>在文件管理器中找到 <strong>BaiduNetdisk</strong> 下载目录</li>
+                            <li>选择刚下载的 PDF 即可导入</li>
+                        </ol>
+                        <div class="import-tip">
+                            💡 <strong>提示：</strong>百度网盘下载的文件通常在手机存储的<br>
+                            <code>BaiduNetdisk/</code> 或 <code>Download/BaiduNetdisk/</code> 目录下
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 删除确认弹窗 ========== -->
+        <div class="modal-overlay" id="delete-modal" style="display:none;">
+            <div class="modal modal-small">
+                <div class="modal-header">
+                    <h2>确认删除</h2>
+                </div>
+                <div class="modal-body">
+                    <p id="delete-book-name">确定要删除这本书吗？</p>
+                    <p class="delete-warning">⚠️ 阅读进度也会被删除，此操作不可恢复</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" id="btn-cancel-delete">取消</button>
+                    <button class="btn-danger" id="btn-confirm-delete">删除</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== Toast 消息 ========== -->
+        <div class="toast" id="toast" style="display:none;">
+            <span id="toast-message"></span>
+        </div>
+    </div>
+
+    <!-- ==================== JavaScript ==================== -->
+    <!-- IndexedDB 存储层 -->
+    <script src="js/storage.js"></script>
+    <!-- PDF 阅读器 -->
+    <script src="js/reader.js"></script>
+    <!-- 应用主逻辑 -->
+    <script src="js/app.js"></script>
+
+    <!-- Service Worker 注册 -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('js/sw.js').then(function(reg) {
+                    console.log('[SW] 注册成功:', reg.scope);
+                }).catch(function(err) {
+                    console.log('[SW] 注册失败:', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
